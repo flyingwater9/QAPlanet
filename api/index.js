@@ -8,6 +8,7 @@ import dotenv from 'dotenv';
 // 加载环境变量
 dotenv.config();
 
+// 创建 Express 实例
 const app = express();
 
 // 调试中间件
@@ -23,28 +24,24 @@ app.use((req, res, next) => {
 app.use(cors());
 app.use(express.json());
 
-// 连接MongoDB
-let isConnected = false;
+// MongoDB 连接
+let cachedDb = null;
 
-const connectDB = async () => {
-  if (isConnected) {
-    console.log('Using existing database connection');
-    return;
+async function connectToDatabase() {
+  if (cachedDb) {
+    console.log('Using cached database connection');
+    return cachedDb;
   }
 
-  try {
-    console.log('MongoDB URI:', process.env.MONGODB_URI ? '已设置' : '未设置');
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
-    isConnected = true;
-    console.log('MongoDB connected successfully');
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    throw error;
-  }
-};
+  console.log('Creating new database connection');
+  const db = await mongoose.connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+  });
+
+  cachedDb = db;
+  return db;
+}
 
 // 用户模型
 const userSchema = new mongoose.Schema({
@@ -80,140 +77,109 @@ const auth = async (req, res, next) => {
   }
 };
 
-// 基础路由 - 添加更多信息用于调试
-app.get('/', async (req, res) => {
-  let mongoStatus = 'Not tested';
+// API 路由处理器
+const handler = async (req, res) => {
   try {
-    await connectDB();
-    mongoStatus = 'Connected';
-  } catch (error) {
-    mongoStatus = `Error: ${error.message}`;
-  }
+    // 连接数据库
+    await connectToDatabase();
 
-  const envVars = {
-    NODE_ENV: process.env.NODE_ENV,
-    MONGODB_URI: process.env.MONGODB_URI ? '已设置' : '未设置',
-    JWT_SECRET: process.env.JWT_SECRET ? '已设置' : '未设置',
-    PORT: process.env.PORT,
-    VERCEL_ENV: process.env.VERCEL_ENV,
-    VERCEL_URL: process.env.VERCEL_URL
-  };
-
-  res.json({
-    message: 'QAPlanet API is running',
-    version: '1.0.0',
-    timestamp: new Date().toISOString(),
-    environment: envVars,
-    mongoStatus: mongoStatus
-  });
-});
-
-// 用户注册
-app.post('/api/users/register', async (req, res) => {
-  try {
-    await connectDB();
-    const { username, password } = req.body;
-    const hashedPassword = await bcrypt.hash(password, 8);
-    const user = new User({ username, password: hashedPassword });
-    await user.save();
-    res.status(201).json({ success: true });
-  } catch (error) {
-    console.error('Registration error:', error);
-    res.status(400).json({ error: error.message });
-  }
-});
-
-// 用户登录
-app.post('/api/users/login', async (req, res) => {
-  try {
-    await connectDB();
-    const { username, password } = req.body;
-    const user = await User.findOne({ username });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      throw new Error('用户名或密码错误');
+    // 路由处理
+    if (req.method === 'GET' && req.url === '/') {
+      // 基础路由
+      return res.json({
+        message: 'QAPlanet API is running',
+        version: '1.0.0',
+        timestamp: new Date().toISOString(),
+        environment: {
+          NODE_ENV: process.env.NODE_ENV,
+          MONGODB_URI: process.env.MONGODB_URI ? '已设置' : '未设置',
+          JWT_SECRET: process.env.JWT_SECRET ? '已设置' : '未设置'
+        }
+      });
     }
-    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET);
-    res.json({ token });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(401).json({ error: error.message });
-  }
-});
 
-// 获取问题列表
-app.get('/api/qa/questions', async (req, res) => {
-  try {
-    await connectDB();
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const questions = await QA.find()
-      .populate('userId', 'username')
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit);
-    const total = await QA.countDocuments();
-    res.json({
-      questions,
-      pagination: {
-        total,
-        page,
-        pages: Math.ceil(total / limit)
+    // 用户注册
+    if (req.method === 'POST' && req.url === '/api/users/register') {
+      const { username, password } = req.body;
+      const hashedPassword = await bcrypt.hash(password, 8);
+      const user = new User({ username, password: hashedPassword });
+      await user.save();
+      return res.status(201).json({ success: true });
+    }
+
+    // 用户登录
+    if (req.method === 'POST' && req.url === '/api/users/login') {
+      const { username, password } = req.body;
+      const user = await User.findOne({ username });
+      if (!user || !(await bcrypt.compare(password, user.password))) {
+        return res.status(401).json({ error: '用户名或密码错误' });
       }
-    });
-  } catch (error) {
-    console.error('Get questions error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// 创建新问题
-app.post('/api/qa/questions', auth, async (req, res) => {
-  try {
-    await connectDB();
-    const { question, answer } = req.body;
-    const qa = new QA({
-      question,
-      answer,
-      userId: req.user._id
-    });
-    await qa.save();
-    await qa.populate('userId', 'username');
-    res.status(201).json({ success: true, qa });
-  } catch (error) {
-    console.error('Create question error:', error);
-    res.status(400).json({ error: error.message });
-  }
-});
-
-// 获取问题详情
-app.get('/api/qa/questions/:id', async (req, res) => {
-  try {
-    await connectDB();
-    const qa = await QA.findById(req.params.id).populate('userId', 'username');
-    if (!qa) {
-      return res.status(404).json({ error: '问题不存在' });
+      const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET);
+      return res.json({ token });
     }
-    res.json({ qa });
-  } catch (error) {
-    console.error('Get question detail error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
 
-// 删除问题
-app.delete('/api/qa/questions/:id', auth, async (req, res) => {
-  try {
-    await connectDB();
-    const qa = await QA.findOne({ _id: req.params.id, userId: req.user._id });
-    if (!qa) {
-      return res.status(404).json({ error: '问题不存在或无权删除' });
+    // 获取问题列表
+    if (req.method === 'GET' && req.url.startsWith('/api/qa/questions')) {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const questions = await QA.find()
+        .populate('userId', 'username')
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit);
+      const total = await QA.countDocuments();
+      return res.json({
+        questions,
+        pagination: {
+          total,
+          page,
+          pages: Math.ceil(total / limit)
+        }
+      });
     }
-    await qa.deleteOne();
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Delete question error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
 
-export default app; 
+    // 创建新问题
+    if (req.method === 'POST' && req.url === '/api/qa/questions') {
+      const { question, answer } = req.body;
+      const qa = new QA({
+        question,
+        answer,
+        userId: req.user._id
+      });
+      await qa.save();
+      await qa.populate('userId', 'username');
+      return res.status(201).json({ success: true, qa });
+    }
+
+    // 获取问题详情
+    if (req.method === 'GET' && req.url === '/api/qa/questions/:id') {
+      const qa = await QA.findById(req.params.id).populate('userId', 'username');
+      if (!qa) {
+        return res.status(404).json({ error: '问题不存在' });
+      }
+      return res.json({ qa });
+    }
+
+    // 删除问题
+    if (req.method === 'DELETE' && req.url === '/api/qa/questions/:id') {
+      const qa = await QA.findOne({ _id: req.params.id, userId: req.user._id });
+      if (!qa) {
+        return res.status(404).json({ error: '问题不存在或无权删除' });
+      }
+      await qa.deleteOne();
+      return res.json({ success: true });
+    }
+
+    // 如果没有匹配的路由
+    return res.status(404).json({ error: 'Not Found' });
+
+  } catch (error) {
+    console.error('API Error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+// 将 Express 应用包装为 Vercel 函数
+export default async function (req, res) {
+  return handler(req, res);
+} 
