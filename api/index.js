@@ -13,6 +13,9 @@ const app = express();
 // 调试中间件
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  console.log('Headers:', req.headers);
+  console.log('Query:', req.query);
+  console.log('Body:', req.body);
   next();
 });
 
@@ -30,6 +33,7 @@ const connectDB = async () => {
   }
 
   try {
+    console.log('MongoDB URI:', process.env.MONGODB_URI ? '已设置' : '未设置');
     await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true
@@ -77,13 +81,30 @@ const auth = async (req, res, next) => {
 };
 
 // 基础路由 - 添加更多信息用于调试
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
+  let mongoStatus = 'Not tested';
+  try {
+    await connectDB();
+    mongoStatus = 'Connected';
+  } catch (error) {
+    mongoStatus = `Error: ${error.message}`;
+  }
+
+  const envVars = {
+    NODE_ENV: process.env.NODE_ENV,
+    MONGODB_URI: process.env.MONGODB_URI ? '已设置' : '未设置',
+    JWT_SECRET: process.env.JWT_SECRET ? '已设置' : '未设置',
+    PORT: process.env.PORT,
+    VERCEL_ENV: process.env.VERCEL_ENV,
+    VERCEL_URL: process.env.VERCEL_URL
+  };
+
   res.json({
     message: 'QAPlanet API is running',
     version: '1.0.0',
-    env: process.env.NODE_ENV,
-    mongodb_uri: process.env.MONGODB_URI ? 'Set' : 'Not set',
-    jwt_secret: process.env.JWT_SECRET ? 'Set' : 'Not set'
+    timestamp: new Date().toISOString(),
+    environment: envVars,
+    mongoStatus: mongoStatus
   });
 });
 
