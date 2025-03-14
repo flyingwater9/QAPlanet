@@ -1,0 +1,20 @@
+name = "qaplanet"
+main = "src/worker.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# These will be set through the Cloudflare dashboard
+# MONGODB_URI = "your_mongodb_uri"
+# JWT_SECRET = "your_jwt_secret"
+
+# Development environment variables
+[env.development]
+name = "qaplanet-dev"
+
+# Production environment variables
+[env.production]
+name = "qaplanet"
+[env.production.vars]
+MONGODB_URI = "mongodb+srv://flyingwateryoung:9HkZl1RVrbKn9K26@cluster0.xvsxv.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+JWT_SECRET = "ddeade3c58171d8b0dc808b0eebbb0d36a28348c9067d698dd5b5903f619affb" 

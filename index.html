@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QAPlanet - AI问答分享社区</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-robot"></i>
+            <span>QAPlanet</span>
+        </div>
+        <div class="nav-menu">
+            <a href="index.html" class="active">首页</a>
+            <a href="explore.html">发现</a>
+            <a href="post.html" class="post-btn">分享问答</a>
+            <div class="user-menu" id="userMenu">
+                <a href="login.html" id="loginBtn">登录</a>
+                <a href="register.html" id="registerBtn">注册</a>
+                <div class="user-profile hidden" id="userProfile">
+                    <img src="default-avatar.png" alt="用户头像" id="userAvatar">
+                    <div class="dropdown-menu">
+                        <a href="profile.html">个人主页</a>
+                        <a href="settings.html">设置</a>
+                        <a href="#" id="logoutBtn">退出</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="hero">
+            <h1>欢迎来到 QAPlanet</h1>
+            <p>分享你与AI的精彩对话，发现更多有趣的问答</p>
+            <div class="search-box">
+                <input type="text" placeholder="搜索问题或关键词...">
+                <button><i class="fas fa-search"></i></button>
+            </div>
+        </section>
+
+        <section class="qa-list">
+            <div class="filters">
+                <button class="active">最新</button>
+                <button>热门</button>
+                <button>待回答</button>
+            </div>
+            
+            <div class="qa-items" id="qaList">
+                <!-- 问答项目将通过JavaScript动态加载 -->
+            </div>
+
+            <template id="qaItemTemplate">
+                <div class="qa-item">
+                    <div class="qa-header">
+                        <img src="" alt="用户头像" class="user-avatar">
+                        <div class="qa-info">
+                            <div class="user-name"></div>
+                            <div class="post-time"></div>
+                        </div>
+                    </div>
+                    <div class="qa-content">
+                        <h3 class="question"></h3>
+                        <p class="answer"></p>
+                    </div>
+                    <div class="qa-footer">
+                        <button class="like-btn">
+                            <i class="far fa-heart"></i>
+                            <span>0</span>
+                        </button>
+                        <button class="comment-btn">
+                            <i class="far fa-comment"></i>
+                            <span>0</span>
+                        </button>
+                        <button class="share-btn">
+                            <i class="far fa-share-square"></i>
+                        </button>
+                    </div>
+                </div>
+            </template>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>关于 QAPlanet</h3>
+                <p>QAPlanet 是一个分享AI问答的社区平台，让我们一起探索AI的无限可能。</p>
+            </div>
+            <div class="footer-section">
+                <h3>快速链接</h3>
+                <ul>
+                    <li><a href="about.html">关于我们</a></li>
+                    <li><a href="terms.html">使用条款</a></li>
+                    <li><a href="privacy.html">隐私政策</a></li>
+                    <li><a href="contact.html">联系我们</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>关注我们</h3>
+                <div class="social-links">
+                    <a href="#"><i class="fab fa-weixin"></i></a>
+                    <a href="#"><i class="fab fa-weibo"></i></a>
+                    <a href="#"><i class="fab fa-github"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 QAPlanet. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="scripts.js"></script>
+</body>
+</html> 
