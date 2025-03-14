@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QAPlanet API 测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .section {
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        input {
+            padding: 5px;
+            margin: 5px;
+            width: 200px;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>QAPlanet API 测试</h1>
+    
+    <div class="section">
+        <h2>用户注册</h2>
+        <input type="text" id="regUsername" placeholder="用户名">
+        <input type="password" id="regPassword" placeholder="密码">
+        <button onclick="register()">注册</button>
+        <pre id="regResult"></pre>
+    </div>
+
+    <div class="section">
+        <h2>用户登录</h2>
+        <input type="text" id="loginUsername" placeholder="用户名">
+        <input type="password" id="loginPassword" placeholder="密码">
+        <button onclick="login()">登录</button>
+        <pre id="loginResult"></pre>
+    </div>
+
+    <div class="section">
+        <h2>获取问题列表</h2>
+        <button onclick="getQuestions()">获取问题</button>
+        <pre id="questionsResult"></pre>
+    </div>
+
+    <div class="section">
+        <h2>创建新问题</h2>
+        <input type="text" id="question" placeholder="问题">
+        <input type="text" id="answer" placeholder="答案">
+        <button onclick="createQuestion()">创建</button>
+        <pre id="createResult"></pre>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let token = localStorage.getItem('token');
+
+        async function register() {
+            const username = document.getElementById('regUsername').value;
+            const password = document.getElementById('regPassword').value;
+            try {
+                const response = await fetch(`${API_BASE}/api/users/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+                document.getElementById('regResult').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('regResult').textContent = error.message;
+            }
+        }
+
+        async function login() {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            try {
+                const response = await fetch(`${API_BASE}/api/users/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+                if (data.token) {
+                    token = data.token;
+                    localStorage.setItem('token', token);
+                }
+                document.getElementById('loginResult').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('loginResult').textContent = error.message;
+            }
+        }
+
+        async function getQuestions() {
+            try {
+                const response = await fetch(`${API_BASE}/api/qa/questions`);
+                const data = await response.json();
+                document.getElementById('questionsResult').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('questionsResult').textContent = error.message;
+            }
+        }
+
+        async function createQuestion() {
+            if (!token) {
+                alert('请先登录！');
+                return;
+            }
+            const question = document.getElementById('question').value;
+            const answer = document.getElementById('answer').value;
+            try {
+                const response = await fetch(`${API_BASE}/api/qa/questions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ question, answer })
+                });
+                const data = await response.json();
+                document.getElementById('createResult').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('createResult').textContent = error.message;
+            }
+        }
+    </script>
+</body>
+</html> 
