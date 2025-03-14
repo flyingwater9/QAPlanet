@@ -3,6 +3,10 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import dotenv from 'dotenv';
+
+// 加载环境变量
+dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -12,7 +16,10 @@ app.use(cors());
 app.use(express.json());
 
 // 连接MongoDB
-mongoose.connect(process.env.MONGODB_URI)
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB connection error:', err));
 
@@ -155,3 +162,6 @@ app.delete('/api/qa/questions/:id', auth, async (req, res) => {
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
+
+// 导出 app 以供 Vercel 使用
+export default app;
